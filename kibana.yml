@@ -1,0 +1,45 @@
+version: '3.7'
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.10.0
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms256m -Xmx256m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - "9200:9200"
+    networks:
+      - elastic
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.10.0
+    container_name: kibana
+    depends_on:
+      - elasticsearch
+    environment:
+      SERVER_NAME: kibana
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+    networks:
+      - elastic
+  apm-server:
+    image: docker.elastic.co/apm/apm-server:7.10.0
+    container_name: apm-server
+    depends_on:
+      - elasticsearch
+    command: >
+      apm-server -e
+      -E output.elasticsearch.hosts=["elasticsearch:9200"]
+      -E apm-server.rum.enabled=true
+    ports:
+      - "8200:8200"
+    networks:
+      - elastic
+networks:
+  elastic:
+    driver: bridge
